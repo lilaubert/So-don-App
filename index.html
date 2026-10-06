@@ -132,6 +132,8 @@ body{-webkit-tap-highlight-color:transparent}
       <button id="mClose" type="button" aria-label="Đóng" class="w-10 h-10 rounded-xl bg-[#e8efea] text-lg">✕</button>
     </div>
     <div id="mApps" class="grid grid-cols-2 gap-2 mb-3"></div>
+    <label class="text-xs text-[#6a7771]" for="mGross">Số tiền app (giá trị đơn trên app, không bắt buộc)</label>
+    <input id="mGross" type="text" inputmode="numeric" autocomplete="off" placeholder="0 ₫" class="w-full h-12 rounded-xl border border-[#e1e7e2] px-3 text-lg font-bold mb-3">
     <label class="text-xs text-[#6a7771]" for="mAmt">Số tiền thực nhận</label>
     <input id="mAmt" type="text" inputmode="numeric" autocomplete="off" placeholder="0 ₫" class="w-full h-12 rounded-xl border border-[#e1e7e2] px-3 text-lg font-bold mb-3">
     <label class="text-xs text-[#6a7771]" for="mCode">Mã đơn (không bắt buộc)</label>
@@ -420,7 +422,7 @@ function renderDetail(anim){
   else{
     a.forEach(function(o){var A=APPS[o.app],cf=delId===o.id;
       html+='<div class="flex items-center gap-2 py-2 border-t border-[#e1e7e2]"><span class="text-[11px] font-bold rounded-full px-2 py-0.5 shrink-0" style="background:'+A.c+';color:'+A.t+'">'+A.n+'</span>'+
-        '<div class="flex-1 min-w-0"><div class="font-bold">'+fmt(o.amount)+'</div><div class="text-xs text-[#6a7771] truncate">'+(o.code?esc(o.code):'Không có mã')+(o.time?' · '+o.time:'')+'</div></div>'+
+        '<div class="flex-1 min-w-0"><div class="font-bold">'+fmt(o.amount)+'</div>'+(o.gross>o.amount?'<div class="text-xs text-[#6a7771]">Tiền app '+fmt(o.gross)+' · phí '+fmt(o.gross-o.amount)+'</div>':'')+'<div class="text-xs text-[#6a7771] truncate">'+(o.code?esc(o.code):'Không có mã')+(o.time?' · '+o.time:'')+'</div></div>'+
         '<button type="button" data-del="'+o.id+'" aria-label="Xóa đơn" class="h-9 px-3 rounded-lg text-sm '+(cf?'bg-[#b4493d] text-white':'bg-[#e8efea] text-[#b4493d]')+'">'+(cf?'Xóa?':'✕')+'</button></div>';
     });
   }
@@ -439,12 +441,14 @@ function saveManual(){
   var amt=parseInt($('#mAmt').value.replace(/\D/g,''),10)||0,date=$('#mDate').value,time=$('#mTime').value,code=$('#mCode').value.trim(),m=$('#mMsg');
   if(amt<=0){m.textContent='Nhập số tiền thực nhận lớn hơn 0.';return}
   if(!date){m.textContent='Chọn ngày của đơn.';return}
+  var gr=parseInt($('#mGross').value.replace(/\D/g,''),10)||amt;
+  if(gr<amt){m.textContent='Số tiền app phải lớn hơn hoặc bằng số thực nhận.';return}
   var key=code?mApp+'|'+code:'manual|'+uid(),ex=null;
   orders.forEach(function(o){if(o.key===key)ex=o});
-  if(ex){ex.date=date;ex.amount=amt;ex.gross=amt;if(time)ex.time=time}
-  else{var no={id:uid(),key:key,code:code,app:mApp,date:date,time:time,gross:amt,amount:amt};orders.push(no);applySale(no)}
+  if(ex){ex.date=date;ex.amount=amt;ex.gross=gr;if(time)ex.time=time}
+  else{var no={id:uid(),key:key,code:code,app:mApp,date:date,time:time,gross:gr,amount:amt};orders.push(no);applySale(no)}
   persist();persistStock();persistLog();vy=+date.slice(0,4);vm=+date.slice(5,7);selD=date;tab='orders';
-  $('#mAmt').value='';$('#mCode').value='';$('#mTime').value='';closeModal();render();
+  $('#mAmt').value='';$('#mGross').value='';$('#mCode').value='';$('#mTime').value='';closeModal();render();
   say((ex?'Đã cập nhật đơn ':'Đã thêm đơn ')+APPS[mApp].n+': '+fmt(amt)+'.');
 }
 
@@ -708,6 +712,7 @@ $('#mClose').onclick=closeModal;
 $('#modal').onclick=function(e){if(e.target===$('#modal'))closeModal()};
 $('#mApps').onclick=function(e){var b=e.target.closest('[data-a]');if(b){mApp=b.dataset.a;renderMApps()}};
 $('#mAmt').oninput=function(e){var d=e.target.value.replace(/\D/g,'').replace(/^0+/,'').slice(0,12);e.target.value=d?(+d).toLocaleString('vi-VN'):''};
+$('#mGross').oninput=function(e){var d=e.target.value.replace(/\D/g,'').replace(/^0+/,'').slice(0,12);e.target.value=d?(+d).toLocaleString('vi-VN'):''};
 $('#mSave').onclick=saveManual;
 var clrT;
 function resetClr(){var b=$('#clearAll');b.dataset.armed='0';b.textContent='Xóa toàn bộ dữ liệu';b.style.background='';b.style.color='';clearTimeout(clrT)}
